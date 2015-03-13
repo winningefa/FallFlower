@@ -9,14 +9,15 @@
 	 'use strict';
 	
 	var NAME = 'flowerfall';
-	var BASE_SIZE = 30;
 	
 	var DEFAULTS = {
-		waveRangeX		: -1,					// The value that items can wave in X axis 
-		waveRangeY		: -1,					// THe value that items can wave in Y axis
+		isXmove			: false,				// Items move straightly on X axis (true = move, false = static)
+		isYmove			: true,					// Items move straightly on Y axis (true = move, false = static)
+		waveRangeX		: 0,					// The value that items can wave in X axis 
+		waveRangeY		: 0,					// THe value that items can wave in Y axis
 		xDirection		: 0,					// Items' moving direction of x axis (-1 = left, 0 = middle, 1 = right)
 		yDirection		: 1,					// Items' moving direction of y axis (-1 = up, 0 = middle, 1 = down)
-		delayInterval	: 500,					// Interval of each item
+		delayInterval	: 200,					// Interval of each item
 		delayGroup		: 1,					// Every interval time fall down items' amount
 		angleMin		: 0,					// Range of rotate(2D) axis angle 
 		angleMax		: 90,					
@@ -24,12 +25,13 @@
 		xRangeMax		: $(window).width(),	
 		yRangeMin		: 0,					// Range of height that items can appear
 		yRangeMax		: 0.05,
-		imgWidth		: 100,					// Items size
-		imgHeight		: 100,
+		imgWidth		: '100%',				// Items size
+		imgHeight		: '100%',
 		xSpeed			: 1,					// Items' moving speed of x axis 
 		ySpeed			: 1,					// Items' moving speed of y axis
+		waveSpeed		: 1,					// Items' rolling speed
 		sum				: 0,					// Items amount
-		imgURL			: null					// Item image URL
+		imgURL			: null,					// Item image URL
 	};
 	
 	//use this function to initiate
@@ -70,23 +72,21 @@
 		this.left = Plugin.util.random(this.s.xRangeMin, this.s.xRangeMax);
 		
 		elem.css('position','absolute');//absolute
+		elem.css('text-align','center');
 		elem.css('top',this.top);
 		elem.css('left',this.left);
-		elem.css('width',BASE_SIZE+'px');
-		elem.css('height',BASE_SIZE+'px');
 		elem.css('visibility','hidden');
 		
 		img.attr({"src":this.s.imgURL});
-		img.css('width', this.s.imgWidth+'px');
-		img.css('height', this.s.imgHeight+'px');
+		img.css('text-align','center');
+		img.css('width', this.s.imgWidth);
+		img.css('height', this.s.imgHeight);
 		
 		this.agl = Plugin.util.random(this.s.angleMin, this.s.angleMax);//Default range from 0~90
 //		this.agl = 45;
 		this.rot = Plugin.util.angle(this.agl);//caculate x and y for angle
 		this.delay = Plugin.util.random(this.s.delayInterval*(groupMember - 1), this.s.delayInterval*groupMember);
 		this.elem = elem;
-		this.waveX = Math.random() < 0.5 ? -1 : 1;
-		this.waveY = Math.random() < 0.5 ? -1 : 1;
 		this.moveX = Plugin.util.random(1,10);
 		this.moveY = 5;
 		this.rotX = this.rot.rotX;
@@ -94,8 +94,9 @@
 		this.rotate = Plugin.util.random(0,30);
 		this.angleSpd = Math.random() * 10;
 		this.direction = 1;
-		this.x = 0;
-		this.y = 0; 
+		this.x = this.s.isXmove == true ? 1 : 0;
+		this.y = this.s.isYmove == true ? 1 : 0; 
+		this.varAngle = 0;
 		
 		$(element).append(this.elem);
 		$(this.elem).append(img);
@@ -109,8 +110,6 @@
 			|| this.left + this.moveX < 0 
 			|| this.top + this.moveY > $(window).innerHeight() 
 			|| this.top + this.moveY < 0){
-			this.waveX = Math.random() < 0.5 ? -1 : 1;
-			this.waveY = Math.random() < 0.5 ? -1 : 1;
 			this.moveX = Plugin.util.random(1,10);
 			this.moveY = 5;	
 			this.agl = Plugin.util.random(this.s.angleMin, this.s.angleMax);
@@ -120,8 +119,7 @@
 			this.rotate = Plugin.util.random(0,30);	
 			this.angleSpd = Math.random() * 10;
 			this.direction = 1;
-			this.x = 0;
-			this.y = 0;
+			this.varAngle = 0;
 			
 		}else{
 			//change the direction of rotate axis' moving
@@ -133,40 +131,30 @@
 			}
 			
 			//change the direction of wave
-			if(this.s.waveRangeX >= 0){				
-				this.x += 1;
-				this.moveX = this.s.waveRangeX*Math.sin(this.x* this.s.xSpeed*(Math.PI/180));
-				
-			}else{
-				this.moveX = Plugin.util.random(1,1000)*speed* this.s.xSpeed* this.s.xDirection + this.moveX;
-			}
-			
-			if( this.s.waveRangeY >= 0){
-				this.y += 1;
-				this.moveX = this.s.waveRangeY*Math.sin(this.y*s.ySpeed*(Math.PI/180));
-			}else{
-				this.moveY = Plugin.util.random(1,500)*speed* this.s.ySpeed* this.s.yDirection + this.moveY;
-			}
+			this.varAngle += 1;
+			this.moveX = Plugin.util.random(1,1000)*speed* this.x* this.s.xSpeed* this.s.xDirection
+				+ this.s.waveRangeX*Math.sin(this.varAngle* this.s.waveSpeed*(Math.PI/180))  
+				+ this.x *this.moveX;
+			this.moveY = Plugin.util.random(1,500)*speed* this.y* this.s.ySpeed* this.s.yDirection 
+				+ this.s.waveRangeY*Math.sin(this.varAngle* this.s.waveSpeed*(Math.PI/180))
+				+ this.y *this.moveY;
 			
 			//rotate operations
 			this.rotate = Plugin.util.random(0,10)*this.angleSpd + this.rotate;
 			this.agl = (Math.random() * (0.2 - 0)  + 0) * this.direction + this.agl;
-//			this.agl = 0.05*this.direction + this.agl; 
 			this.rot = Plugin.util.angle(this.agl);
 			this.rotX = this.rot.rotX;
 			this.rotY = this.rot.rotY;
-			
+ 			
 			this.elem.css(
 				'-webkit-transform', 'translate('+this.moveX+'px,'+this.moveY+'px) '
 				+'rotate3d('+this.rotX+','+this.rotY+', 0, '+this.rotate+'deg)'
 				+'rotate('+(-this.agl)+'deg) '
-				
 			);
 		}
 	};
 	
 	Plugin.property.init = function(options,element){
-		//var amount = Plugin.property.MAX;
 		var amount = options.sum < Plugin.property.MAX ? options.sum : Plugin.property.MAX;
 		var targets = [];
 		var groupMember = options.delayGroup;
@@ -174,8 +162,7 @@
 		for(var i = 0;i < amount;i++){
 			targets[i] = new Plugin.property.implement();
 			targets[i].create(options,element,groupMember);
-			groupMember = groupMember > 1 ? groupMember -1 : options.delayGroup;
-			
+			groupMember = groupMember > 1 ? groupMember -1 : options.delayGroup;		
 		}
 		
 		window.setInterval(function(){
